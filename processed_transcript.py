@@ -3,29 +3,38 @@ import google.generativeai as genai
 
 # -------------------- CONFIG --------------------
 # Set your Gemini API key
-genai.configure(api_key="YOUR_GEMINI_API_KEY")
+genai.configure()
 
 # Model name
-MODEL_NAME = "gemini-1.5-pro"  # or whichever version you want
+MODEL_NAME = "gemini-2.0-flash"  # or whichever version you want
 
 # Folders
-input_folder = "path/to/transcriptions"         # folder with .txt files
-output_folder = "path/to/gemini_responses"      # folder to save responses
-
+input_folder = "Transcripts"         # folder with .txt files
+output_folder = "Transcriptions_Summaries"      # folder to save responses
+archive_folder = "Processed_Transcripts_Archive"
 # Make sure output folder exists
 os.makedirs(output_folder, exist_ok=True)
 
 # Custom prompt to send to Gemini
-# You can make this dynamic if needed
-prompt_prefix = "Summarize this transcription clearly and concisely:\n\n"
+prompt_prefix = "What song is granmda trying to remember in this conversation. give me a list of 10 suggestions that are most likely the song with youtube links:\n\n"
 
 # -------------------- PROCESS FILES --------------------
 model = genai.GenerativeModel(MODEL_NAME)
 
-for filename in os.listdir(input_folder):
-    if filename.endswith(".txt"):
-        input_path = os.path.join(input_folder, filename)
-        output_path = os.path.join(output_folder, filename)
+#def move_to_archive(filename):
+#    archive_dir = archive_folder
+#    os.makedirs(archive_dir, exist_ok=True)
+#
+#    base_name = os.path.basename(filename)
+#    new_path = os.path.join(archive_dir, base_name)
+#    os.rename(filename, new_path)
+#    print(f"Moved {filename} to {new_path}")
+
+def main_process():
+    for filename in os.listdir(input_folder):
+        if filename.endswith(".txt"):
+            input_path = os.path.join(input_folder, filename)
+            output_path = os.path.join(output_folder, filename)
 
         # Skip if response already exists
         if os.path.exists(output_path):
@@ -52,5 +61,7 @@ for filename in os.listdir(input_folder):
             f.write(result_text)
 
         print(f"✅ Processed {filename} → saved response to {output_path}")
+        
+
 
 print("All files processed!")
