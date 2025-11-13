@@ -53,6 +53,7 @@ def stop_recording():
         status_label.config(text=f"💾 Saved as {filename}")
 
         gemini_transcript.process_and_archive(filename)  # Transcribe and archive the recording
+        processed_transcript.main_process()  # Process the files
 
 # --- GUI Setup ---
 root = tk.Tk()
@@ -69,3 +70,4 @@ status_label = tk.Label(root, text="Press 'Start Recording' to begin.", font=("A
 status_label.pack(pady=10)
 
 root.mainloop()
+
