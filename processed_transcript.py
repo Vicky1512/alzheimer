@@ -1,5 +1,6 @@
 import os
 import google.generativeai as genai
+import glob
 
 # -------------------- CONFIG --------------------
 # Set your Gemini API key
@@ -21,14 +22,7 @@ prompt_prefix = "What song is granmda trying to remember in this conversation. g
 # -------------------- PROCESS FILES --------------------
 model = genai.GenerativeModel(MODEL_NAME)
 
-#def move_to_archive(filename):
-#    archive_dir = archive_folder
-#    os.makedirs(archive_dir, exist_ok=True)
-#
-#    base_name = os.path.basename(filename)
-#    new_path = os.path.join(archive_dir, base_name)
-#    os.rename(filename, new_path)
-#    print(f"Moved {filename} to {new_path}")
+
 
 def main_process():
     for filename in os.listdir(input_folder):
@@ -62,6 +56,22 @@ def main_process():
 
         print(f"✅ Processed {filename} → saved response to {output_path}")
         
+def move_to_archive(filename):
+    os.makedirs(archive_folder, exist_ok=True)
+
+    base_name = os.path.basename(filename)
+    new_path = os.path.join(archive_folder, base_name)
+    os.rename(filename, new_path)
+    print(f"Moved {filename} to {new_path}")
+
+def process_and_archive(filename):
+    move_to_archive(filename)
+    main_process()
 
 
-print("All files processed!")
+if __name__ == "__main__":
+    files = glob.glob("Transcripts*.txt")
+    os.makedirs("Transcriptions_Summaries", exist_ok=True)
+    for path in files:
+        process_and_archive(path)
+
