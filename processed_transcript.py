@@ -1,77 +1,51 @@
 import os
+import shutil
 import google.generativeai as genai
-import glob
 
-# -------------------- CONFIG --------------------
-# Set your Gemini API key
 genai.configure()
+model = genai.GenerativeModel("gemini-2.0-flash")
 
-# Model name
-MODEL_NAME = "gemini-2.0-flash"  # or whichever version you want
+INPUT_FOLDER = "Transcripts"
+OUTPUT_FOLDER = "Transcriptions_Summaries"
+ARCHIVE_FOLDER = "Processed_Transcripts_Archive"
 
-# Folders
-input_folder = "Transcripts"         # folder with .txt files
-output_folder = "Transcriptions_Summaries"      # folder to save responses
-archive_folder = "Processed_Transcripts_Archive"
-# Make sure output folder exists
-os.makedirs(output_folder, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+os.makedirs(ARCHIVE_FOLDER, exist_ok=True)
 
-# Custom prompt to send to Gemini
-prompt_prefix = "What song is granmda trying to remember in this conversation. give me a list of 10 suggestions that are most likely the song with youtube links:\n\n"
-
-# -------------------- PROCESS FILES --------------------
-model = genai.GenerativeModel(MODEL_NAME)
+prompt_prefix = (
+    "What song is grandpa trying to remember in this conversation? "
+    "Give a list of 10 likely songs with YouTube links:\n\n"
+)
 
 
+def process_file(path):
+    filename = os.path.basename(path)
+    output_path = f"{OUTPUT_FOLDER}/{filename}"
 
-def main_process():
-    for filename in os.listdir(input_folder):
-        if filename.endswith(".txt"):
-            input_path = os.path.join(input_folder, filename)
-            output_path = os.path.join(output_folder, filename)
+    # skip duplicates
+    if os.path.exists(output_path):
+        print(f"Skipping {filename}, already processed.")
+        return
 
-        # Skip if response already exists
-        if os.path.exists(output_path):
-            print(f"Skipping {filename}, already processed.")
-            continue
+    # read transcript
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
 
-        # Read input text
-        with open(input_path, "r", encoding="utf-8") as f:
-            text_content = f.read()
+    # Ask Gemini
+    response = model.generate_content(prompt_prefix + text)
+    summary = response.text.strip()
 
-        # Combine prompt + text
-        prompt = prompt_prefix + text_content
+    # save processed output
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(summary)
 
-        # Send to Gemini
-        try:
-            response = model.generate_content(prompt)
-            result_text = response.text.strip()
-        except Exception as e:
-            print(f"Error processing {filename}: {e}")
-            continue
-
-        # Write Gemini’s output to a new .txt file
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(result_text)
-
-        print(f"✅ Processed {filename} → saved response to {output_path}")
-        
-def move_to_archive(filename):
-    os.makedirs(archive_folder, exist_ok=True)
-
-    base_name = os.path.basename(filename)
-    new_path = os.path.join(archive_folder, base_name)
-    os.rename(filename, new_path)
-    print(f"Moved {filename} to {new_path}")
-
-def process_and_archive(filename):
-    move_to_archive(filename)
-    main_process()
+    print(f"Processed → {output_path}")
 
 
-if __name__ == "__main__":
-    files = glob.glob("Transcripts*.txt")
-    os.makedirs("Transcriptions_Summaries", exist_ok=True)
-    for path in files:
-        process_and_archive(path)
+def process_and_archive(path):
+    process_file(path)
 
+    # archive transcript
+    filename = os.path.basename(path)
+    shutil.move(path, f"{ARCHIVE_FOLDER}/{filename}")
+    print(f"Archived transcript → {ARCHIVE_FOLDER}/{filename}")
