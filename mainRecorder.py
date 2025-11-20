@@ -4,15 +4,17 @@ import wavio
 import threading
 import datetime
 import os
+import numpy as np
 
-import gemini_transcript  # Import the transcription module
+import gemini_transcript
+import processed_transcript
 
-# Settings
-SAMPLE_RATE = 44100  # 44.1 kHz
-CHANNELS = 2         # Stereo
+SAMPLE_RATE = 44100
+CHANNELS = 2
 
 recording = False
 audio_data = []
+
 
 def record_audio():
     global recording, audio_data
@@ -27,47 +29,52 @@ def record_audio():
         while recording:
             sd.sleep(100)
 
+
 def start_recording():
     status_label.config(text="🎙️ Recording...")
     record_button.config(state="disabled")
     stop_button.config(state="normal")
     threading.Thread(target=record_audio).start()
 
+
 def stop_recording():
     global recording
     recording = False
-    status_label.config(text="✅ Recording stopped.")
+    status_label.config(text="⏹ Recording stopped.")
     record_button.config(state="normal")
     stop_button.config(state="disabled")
 
     if audio_data:
-        # Combine all recorded chunks
-        import numpy as np
         audio = np.concatenate(audio_data, axis=0)
 
-        # Save with timestamp
-        if not os.path.exists("Recordings/Unprocessed"):
-            os.makedirs("Recordings/Unprocessed")
+        # Ensure folder exists
+        os.makedirs("Recordings/Unprocessed", exist_ok=True)
+
+        # Save WAV
         filename = f"Recordings/Unprocessed/recording_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
         wavio.write(filename, audio, SAMPLE_RATE, sampwidth=2)
-        status_label.config(text=f"💾 Saved as {filename}")
+        status_label.config(text=f"Saved: {filename}")
 
-        gemini_transcript.process_and_archive(filename)  # Transcribe and archive the recording
-        processed_transcript.main_process()  # Process the files
+        # 1️⃣ Transcribe WAV → saves transcript + archives WAV
+        transcript_path = gemini_transcript.process_and_archive(filename)
 
-# --- GUI Setup ---
+        # 2️⃣ Process transcript → outputs summary
+        processed_transcript.process_and_archive(transcript_path)
+
+
+# GUI ----------------
 root = tk.Tk()
-root.title("Simple Voice Recorder")
+root.title("Voice Recorder")
 root.geometry("300x180")
 
-record_button = tk.Button(root, text="🎤 Start Recording", command=start_recording, bg="red", fg="white", font=("Arial", 12))
+record_button = tk.Button(root, text="🎤 Start Recording", command=start_recording, bg="red", fg="white")
 record_button.pack(pady=20)
 
-stop_button = tk.Button(root, text="⏹ Stop Recording", command=stop_recording, bg="gray", fg="white", font=("Arial", 12), state="disabled")
+stop_button = tk.Button(root, text="⏹ Stop Recording", command=stop_recording,
+                        bg="gray", fg="white", state="disabled")
 stop_button.pack(pady=10)
 
-status_label = tk.Label(root, text="Press 'Start Recording' to begin.", font=("Arial", 10))
+status_label = tk.Label(root, text="Press Start Recording")
 status_label.pack(pady=10)
 
 root.mainloop()
-
