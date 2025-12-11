@@ -1,1 +1,3 @@
 backend/gemini_transript.py
+backend/mainRecorder.py
+backend/processed_transcript.py
